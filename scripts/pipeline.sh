@@ -2,8 +2,8 @@ CFG=$1
 DATASET=$1
 OUTPUT=$2
 
-SEED=3
-RANK=16
+SEED=3  #随机种子
+RANK=16 #Lora
 CTX=4
 
 
