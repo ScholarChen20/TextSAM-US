@@ -2,9 +2,9 @@ CFG=$1
 DATASET=$1
 OUTPUT=$2
 
-SEED=3  #随机种子
-RANK=16 #Lora
-CTX=4
+SEED=3  # 随机种子
+RANK=16 # LoRA秩（模型微调参数）
+CTX=4 # 上下文token数量
 
 
 python train.py --config-file configs/${CFG}.yaml \
