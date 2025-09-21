@@ -73,9 +73,9 @@ def split_dataset(images_dir, masks_dir, output_dir, train_ratio=0.8, val_ratio=
     print(f"Train: {len(train_data)}, Val: {len(val_data)}, Test: {len(test_data)}")
 
 #使用示例
-images_path = "./data/BUS/images"  # 替换为 images 文件夹路径
-masks_path = "./data/BUS/masks"  # 替换为 masks 文件夹路径
-output_path = "./data/BUS"
+images_path = "./data/TUS/images"  # 替换为 images 文件夹路径
+masks_path = "./data/TUS/masks"  # 替换为 masks 文件夹路径
+output_path = "./data/TUS"
 # images_path = "./data/CVC-ClinicDB/images"  # 替换为 images 文件夹路径
 # masks_path = "./data/CVC-ClinicDB/masks"  # 替换为 masks 文件夹路径
 # output_path = "./data/CVC-ClinicDB"  # 替换为输出目录路径
@@ -86,7 +86,7 @@ output_path = "./data/BUS"
 # ETIS-LaribPolypDB Train: 157, Val: 20, Test: 19  总共196
 
 # BUSI Train:532 ,val:66 ,Test:67  总共635
-# BUS  Train:130 ,val:16 ,Test:16  总共162
+# TUS  Train:785 ,val:98 ,Test:99  总共983
 
 
 def rename(data_path, out_path):
