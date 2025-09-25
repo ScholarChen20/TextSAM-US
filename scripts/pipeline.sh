@@ -1,4 +1,4 @@
-CFG=$1
+CFG=
 DATASET=$1
 OUTPUT=$2
 
