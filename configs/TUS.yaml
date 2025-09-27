@@ -3,7 +3,7 @@ DATASET:
   TRAIN_PATH: "./data/TUS/train"
   VAL_PATH: "./data/TUS/val"
   TEST_PATH: "./data/TUS/test"
-  IMAGE_FORMAT: ".png"
+  IMAGE_FORMAT: ".jpg"
   MASK_FORMAT: ".png"
   NUM_SHOTS: -1
   TYPE: "binary"
@@ -33,4 +33,4 @@ PROMPT_LEARNER:
   CSC: False
   CLASS_TOKEN_POSITION: "end"
   BACKBONE: "ViT-B/16"
-  CLASSNAMES: ["background", "tumor"]
+  CLASSNAMES: ["background", "tumor", "nodule"]

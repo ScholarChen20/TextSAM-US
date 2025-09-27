@@ -35,7 +35,7 @@ def get_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config-file", required=True, type=str, help="Path to config file")
     parser.add_argument('--resume', action='store_true', help="Whether to resume training")
-    parser.add_argument('--seed', type=int, default=1, help="Random seed for reproducibility.")
+    parser.add_argument('--seed', type=int, default=3, help="Random seed for reproducibility.")
     parser.add_argument("--output-dir", type=str, default="", help="output directory")
     parser.add_argument("opts", default=None, nargs=argparse.REMAINDER, help="modify config options using the command-line")
     args = parser.parse_args()

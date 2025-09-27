@@ -8,6 +8,7 @@ from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR
 import utils.utils as utils
 from datasets.dataloader import DatasetSegmentation, collate_fn
+from utils.metrics import iou_score
 from utils.processor import Samprocessor
 from segment_anything import build_textsam_vit_b,  build_textsam_vit_h, build_textsam_vit_l
 from utils.lora import LoRA_Sam
@@ -18,6 +19,8 @@ import random
 import numpy as np
 import logging
 from utils.utils import load_cfg_from_cfg_file
+from accelerate import Accelerator
+from utils.utils import AverageMeter
 
 def set_random_seed(seed):
     random.seed(seed)
@@ -31,8 +34,9 @@ def get_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument(
     "--config-file",
-    required=True,
+    # required=True,
     type=str,
+    default="configs/TUS.yaml",   # 数据集配置文件
     help="Path to config file",
     )
     parser.add_argument(
@@ -43,13 +47,13 @@ def get_arguments():
     parser.add_argument(
         '--seed',
         type=int,
-        default=1,
+        default=3,
         help="Random seed for reproducibility."
     )
     parser.add_argument(
         "--output-dir", 
         type=str,
-        default="", 
+        default="./output",  # 模型推理输出路径
         help="output directory")
     
     parser.add_argument(
@@ -92,6 +96,8 @@ def logger_config(log_path):
 
 # Validation function
 def evaluate_validation_loss(model, val_dataloader, device, seg_loss, ce_loss):
+    avg_meters = {'val_iou': AverageMeter(), 'val_dice': AverageMeter(),'val_acc': AverageMeter(),
+                  'val_pc': AverageMeter(), 'val_se': AverageMeter(), 'val_sp': AverageMeter()}
     model.eval()  # Set model to evaluation mode
     val_losses = []
     with torch.no_grad():
@@ -101,148 +107,173 @@ def evaluate_validation_loss(model, val_dataloader, device, seg_loss, ce_loss):
             stk_out = stk_out.squeeze(1)
             loss = seg_loss(stk_out, stk_gt.float().to(device)) + ce_loss(stk_out, stk_gt.float().to(device))
             val_losses.append(loss.item())
+
+            image = torch.stack([b["image"] for b in batch], dim=0)
+            iou, dice, SE, PC, SP, ACC = iou_score(stk_out, stk_gt)
+            avg_meters['val_iou'].update(iou, image.size(0))
+            avg_meters['val_dice'].update(dice, image.size(0))
+            avg_meters['val_acc'].update(ACC, image.size(0))
+            avg_meters['val_pc'].update(PC, image.size(0))
+            avg_meters['val_se'].update(SE, image.size(0))
+            avg_meters['val_sp'].update(SP, image.size(0))
     model.train()
-    return mean(val_losses)
+    return mean(val_losses),avg_meters
 
-cfg = get_arguments()
-os.makedirs(os.path.join(cfg.output_dir, cfg.DATASET.NAME, "trained_models", f"seed{cfg.seed}"),exist_ok = True)
-logger = logger_config(os.path.join(cfg.output_dir, cfg.DATASET.NAME, "trained_models", f"seed{cfg.seed}", "log.txt"))
-logger.info("************")
-logger.info("** Config **")
-logger.info("************")
-logger.info(cfg)
-if cfg.seed >= 0:
-    logger.info("Setting fixed seed: {}".format(cfg.seed))
-    set_random_seed(cfg.seed)
 
-# Take dataset path
-train_dataset_path = cfg.DATASET.TRAIN_PATH
 
-classnames = cfg.PROMPT_LEARNER.CLASSNAMES
+if __name__ == '__main__':
+    cfg = get_arguments()
+    accelerator = Accelerator()
+    os.makedirs(os.path.join(cfg.output_dir, cfg.DATASET.NAME, "trained_models", f"seed{cfg.seed}"), exist_ok=True)
+    logger = logger_config(
+        os.path.join(cfg.output_dir, cfg.DATASET.NAME, "trained_models", f"seed{cfg.seed}", "log.txt"))
+    logger.info("************")
+    logger.info("** Config **")
+    logger.info("************")
+    logger.info(cfg)
+    if cfg.seed >= 0:
+        logger.info("Setting fixed seed: {}".format(cfg.seed))
+        set_random_seed(cfg.seed)
 
-# Load SAM model
-if(cfg.SAM.MODEL == "vit_b"):
-    sam = build_textsam_vit_b(cfg=cfg, checkpoint=cfg.SAM.CHECKPOINT, classnames=classnames)
-elif(cfg.SAM.MODEL == "vit_l"):
-    sam = build_textsam_vit_l(cfg=cfg, checkpoint=cfg.SAM.CHECKPOINT, classnames=classnames)
-else:
-    sam = build_textsam_vit_h(cfg=cfg, checkpoint=cfg.SAM.CHECKPOINT, classnames=classnames)
-# Create SAM LoRA
-sam_lora = LoRA_Sam(sam, cfg.SAM.RANK)
-model = sam_lora.sam
+    # Take dataset path
+    train_dataset_path = cfg.DATASET.TRAIN_PATH
+    # todo 文本描述提取关键字
+    classnames = cfg.PROMPT_LEARNER.CLASSNAMES
 
-# Process the dataset
-processor = Samprocessor(model)
-train_ds = DatasetSegmentation(cfg, processor, mode="train", num_shots=cfg.DATASET.NUM_SHOTS, seed= cfg.seed)
-# Create a dataloader
-train_dataloader = DataLoader(train_ds, batch_size=cfg.TRAIN.BATCH_SIZE, shuffle=True, collate_fn=collate_fn)
+    # Load SAM model
+    if (cfg.SAM.MODEL == "vit_b"):
+        sam = build_textsam_vit_b(cfg=cfg, checkpoint=cfg.SAM.CHECKPOINT, classnames=classnames)
+    elif (cfg.SAM.MODEL == "vit_l"):
+        sam = build_textsam_vit_l(cfg=cfg, checkpoint=cfg.SAM.CHECKPOINT, classnames=classnames)
+    else:
+        sam = build_textsam_vit_h(cfg=cfg, checkpoint=cfg.SAM.CHECKPOINT, classnames=classnames)
+    # Create SAM LoRA
+    sam_lora = LoRA_Sam(sam, cfg.SAM.RANK)
+    model = sam_lora.sam
 
-#Load validation dataset
-val_ds = DatasetSegmentation(cfg, processor, mode="val", num_shots=cfg.DATASET.NUM_SHOTS, seed=cfg.seed*cfg.seed)
-val_dataloader = DataLoader(val_ds, batch_size=cfg.TRAIN.BATCH_SIZE, shuffle=False, collate_fn=collate_fn)
+    # Process the dataset
+    processor = Samprocessor(model)
+    train_ds = DatasetSegmentation(cfg, processor, mode="train", num_shots=cfg.DATASET.NUM_SHOTS, seed=cfg.seed)
+    # Create a dataloader
+    train_dataloader = DataLoader(train_ds, batch_size=cfg.TRAIN.BATCH_SIZE, shuffle=True, collate_fn=collate_fn)
 
-enabled = set()
-for name, param in model.named_parameters():
-    if param.requires_grad:
-        enabled.add(name)
+    # Load validation dataset
+    val_ds = DatasetSegmentation(cfg, processor, mode="val", num_shots=cfg.DATASET.NUM_SHOTS, seed=cfg.seed * cfg.seed)
+    val_dataloader = DataLoader(val_ds, batch_size=cfg.TRAIN.BATCH_SIZE, shuffle=False, collate_fn=collate_fn)
 
-print(f"Parameters to be updated: {enabled}")
-print("Number of trainable parameters: ", sum(p.numel() for p in model.parameters() if p.requires_grad))
-# Initialize optimizer and Loss
-optimizer = AdamW(model.parameters(), lr=cfg.TRAIN.LEARNING_RATE)
-seg_loss = monai.losses.DiceLoss(sigmoid=True, squared_pred=True, reduction='mean')
-ce_loss = nn.BCEWithLogitsLoss(reduction="mean")
-num_epochs = cfg.TRAIN.NUM_EPOCHS
-scheduler = CosineAnnealingLR(optimizer, T_max=num_epochs, eta_min=1e-6)
+    enabled = set()
+    for name, param in model.named_parameters():
+        if param.requires_grad:
+            enabled.add(name)
 
-results_name = (
-    f"LORA{cfg.SAM.RANK}_"
-    f"SHOTS{cfg.DATASET.NUM_SHOTS}_"
-    f"NCTX{cfg.PROMPT_LEARNER.N_CTX_TEXT}_"
-    f"CSC{cfg.PROMPT_LEARNER.CSC}_"
-    f"CTP{cfg.PROMPT_LEARNER.CLASS_TOKEN_POSITION}"
-)
+    print(f"Parameters to be updated: {enabled}")
+    print("Number of trainable parameters: ", sum(p.numel() for p in model.parameters() if p.requires_grad))
+    # Initialize optimizer and Loss
+    optimizer = AdamW(model.parameters(), lr=cfg.TRAIN.LEARNING_RATE)
+    seg_loss = monai.losses.DiceLoss(sigmoid=True, squared_pred=True, reduction='mean')
+    ce_loss = nn.BCEWithLogitsLoss(reduction="mean")
+    num_epochs = cfg.TRAIN.NUM_EPOCHS
+    scheduler = CosineAnnealingLR(optimizer, T_max=num_epochs, eta_min=1e-6)
 
-# Resume functionality
-resume_path = os.path.join(
-            cfg.output_dir,
-            cfg.DATASET.NAME,
-            "trained_models",
-            f"{results_name}_latest.pth")
+    results_name = (
+        f"LORA{cfg.SAM.RANK}_"
+        f"SHOTS{cfg.DATASET.NUM_SHOTS}_"
+        f"NCTX{cfg.PROMPT_LEARNER.N_CTX_TEXT}_"
+        f"CSC{cfg.PROMPT_LEARNER.CSC}_"
+        f"CTP{cfg.PROMPT_LEARNER.CLASS_TOKEN_POSITION}"
+    )
 
-start_epoch = 0
-best_loss = float("inf")
+    # Resume functionality
+    resume_path = os.path.join(
+        cfg.output_dir,
+        cfg.DATASET.NAME,
+        "trained_models",
+        f"{results_name}_latest.pth")
 
-if cfg.resume and os.path.exists(resume_path):
-    checkpoint = torch.load(resume_path)
-    model.load_state_dict(checkpoint["model"])
-    optimizer.load_state_dict(checkpoint["optimizer"])
-    start_epoch = checkpoint["epoch"] + 1
-    best_loss = checkpoint["best_loss"]
-    print(f"Loaded checkpoint from epoch {start_epoch}, best loss: {best_loss:.4f}")
+    start_epoch = 0
+    best_loss = float("inf")
 
-# Set device
-device = "cuda" if torch.cuda.is_available() else "cpu"
-# Set model to train and into the device
-model.train()
-model.to(device)
+    if cfg.resume and os.path.exists(resume_path):
+        checkpoint = torch.load(resume_path)
+        model.load_state_dict(checkpoint["model"])
+        optimizer.load_state_dict(checkpoint["optimizer"])
+        start_epoch = checkpoint["epoch"] + 1
+        best_loss = checkpoint["best_loss"]
+        print(f"Loaded checkpoint from epoch {start_epoch}, best loss: {best_loss:.4f}")
 
-mse_loss = nn.MSELoss(reduction="mean")
+    # Set device
+    # device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = accelerator.device
+    # Set model to train and into the device
+    model.train()
+    model.to(device)
 
-total_loss = []
-epoch_time = []
+    model, optimizer, train_dataloader, val_dataloader = accelerator.prepare( model, optimizer, train_dataloader, val_dataloader)
+    best_iou = 0.
+    mse_loss = nn.MSELoss(reduction="mean")
 
-for epoch in range(start_epoch, num_epochs):
-    epoch_losses = []
-    epoch_start_time = time()
+    total_loss = []
+    epoch_time = []
 
-    for i, batch in enumerate(tqdm(train_dataloader)):
-        outputs = model(batched_input=batch, multimask_output=False)
-        stk_gt, stk_out = utils.stacking_batch(batch, outputs)
-        stk_out = stk_out.squeeze(1)
-        loss = seg_loss(stk_out, stk_gt.float().to(device)) + ce_loss(stk_out, stk_gt.float().to(device))
+    for epoch in range(start_epoch, num_epochs):
+        epoch_losses = []
+        epoch_start_time = time()
 
-        optimizer.zero_grad()
-        loss.backward()
-        # Optimize
-        optimizer.step()
-        epoch_losses.append(loss.item())
+        for i, batch in enumerate(tqdm(train_dataloader)):
+            outputs = model(batched_input=batch, multimask_output=False)
+            stk_gt, stk_out = utils.stacking_batch(batch, outputs)
+            stk_out = stk_out.squeeze(1)
+            loss = seg_loss(stk_out, stk_gt.float().to(device)) + ce_loss(stk_out, stk_gt.float().to(device))
 
-    # End of epoch operations
-    epoch_end_time = time()
-    epoch_time.append(epoch_end_time - epoch_start_time)
-    mean_epoch_loss = mean(epoch_losses)
-    # Validation phase
-    mean_val_loss = evaluate_validation_loss(model, val_dataloader, device, seg_loss, ce_loss)
-    print(f'EPOCH: {epoch+1} | Training Loss: {mean_epoch_loss:.4f} | Validation Loss: {mean_val_loss:.4f}')
+            optimizer.zero_grad()
+            # loss.backward()
+            accelerator.backward(loss)  # Use Accelerator's backward method for mixed precision if needed
+            # Optimize
+            optimizer.step()
+            epoch_losses.append(loss.item())
 
-    # Save the best model based on validation loss
-    if mean_val_loss < best_loss:
-        print(f"New best validation loss: {best_loss:.4f} -> {mean_val_loss:.4f}")
-        best_loss = mean_val_loss
+        # End of epoch operations
+        epoch_end_time = time()
+        epoch_time.append(epoch_end_time - epoch_start_time)
+        mean_epoch_loss = mean(epoch_losses)
+        # Validation phase
+        mean_val_loss, avg_meters = evaluate_validation_loss(model, val_dataloader, device, seg_loss, ce_loss)
+        accelerator.print(f'EPOCH: {epoch + 1} | Training Loss: {mean_epoch_loss:.4f} | Validation Loss: {mean_val_loss:.4f}')
+        accelerator.print('val_iou %.4f - val_dice %.4f - val_acc %.4f -val_pc %.4f - val_se %.4f - val_sp %.4f'
+                          % (avg_meters['val_iou'].avg, avg_meters['val_dice'].avg, avg_meters['val_acc'].avg,
+                             avg_meters['val_pc'].avg, avg_meters['val_se'].avg, avg_meters['val_sp'].avg))
+        accelerator.wait_for_everyone()
+        if avg_meters['val_iou'].avg > best_iou:
+            best_iou = avg_meters['val_iou'].avg
+        accelerator.print('best_iou:{}'.format(best_iou))
+
+        # Save the best model based on validation loss
+        if mean_val_loss < best_loss:
+            print(f"New best validation loss: {best_loss:.4f} -> {mean_val_loss:.4f}")
+            best_loss = mean_val_loss
+            torch.save({
+                "model": model.state_dict(),
+                "epoch": epoch,
+                "optimizer": optimizer.state_dict(),
+                "best_loss": best_loss
+            }, os.path.join(
+                cfg.output_dir,
+                cfg.DATASET.NAME,
+                "trained_models",
+                f"seed{cfg.seed}",
+                f"{results_name}_best.pth")
+            )
+        # Save the latest model
         torch.save({
             "model": model.state_dict(),
             "epoch": epoch,
             "optimizer": optimizer.state_dict(),
             "best_loss": best_loss
-        }, os.path.join(
-            cfg.output_dir,
-            cfg.DATASET.NAME,
-            "trained_models",
-            f"seed{cfg.seed}",
-            f"{results_name}_best.pth")
+        },
+            os.path.join(
+                cfg.output_dir,
+                cfg.DATASET.NAME,
+                "trained_models",
+                f"seed{cfg.seed}",
+                f"{results_name}_latest.pth")
         )
-    # Save the latest model
-    torch.save({
-        "model": model.state_dict(),
-        "epoch": epoch,
-        "optimizer": optimizer.state_dict(),
-        "best_loss": best_loss
-    }, 
-    os.path.join(
-    cfg.output_dir,
-    cfg.DATASET.NAME,
-    "trained_models",
-    f"seed{cfg.seed}",
-    f"{results_name}_latest.pth")
-    )
