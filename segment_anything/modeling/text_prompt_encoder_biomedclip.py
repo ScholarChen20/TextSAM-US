@@ -6,11 +6,18 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 from torch.cuda.amp import GradScaler, autocast
-from open_clip import create_model_from_pretrained, get_tokenizer
+from open_clip import create_model_and_transforms, get_tokenizer, create_model
 from biomedclip.vision_modules import Block
 from biomedclip.text_modules import BertLayer
 from typing import Optional
 from .prompt_encoder import PromptEncoder
+import ssl
+import os
+import certifi
+
+os.environ['SSL_CERT_FILE'] = certifi.where()
+os.environ['REQUESTS_CA_BUNDLE'] = certifi.where()
+ssl._create_default_https_context = ssl._create_unverified_context
 
 # Text Prompt Encoder class
 class TextPromptEncoderBiomedCLIP(PromptEncoder):
@@ -127,11 +134,11 @@ class TextPromptEncoderBiomedCLIP(PromptEncoder):
         else:
             return 1
 
-
 def load_biomedclip_to_cpu():
-    
-    model, _ = create_model_from_pretrained('hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224')
-    
+
+    # model, _ = create_model_from_pretrained('hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224')  # huggingface 镜像
+    model,_ ,preprocess  = create_model_and_transforms("local-dir:/home/cwq/.cache/huggingface/BiomedCLIP-model")
+
     vision_target_network = nn.Sequential(*[Block(768,12) for i in range(12)]).to('cuda')
     vision_network = model.visual.trunk.blocks.to('cuda')
 
@@ -157,7 +164,8 @@ class MultiModalPromptLearner(nn.Module):
         ctx_init = cfg.PROMPT_LEARNER.CTX_INIT
         dtype = clip_model.text.transformer.dtype
         ctx_dim = 768
-        self.tokenizer = get_tokenizer('hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224')
+        # self.tokenizer = get_tokenizer('hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224')
+        self.tokenizer = get_tokenizer('local-dir:/home/cwq/.cache/huggingface/BiomedCLIP-model')
         # Default is 1, which is compound shallow prompting
         assert cfg.PROMPT_LEARNER.PROMPT_DEPTH_TEXT >= 1, "For MaPLe, PROMPT_DEPTH should be >= 1"
         self.prompts_depth = cfg.PROMPT_LEARNER.PROMPT_DEPTH_TEXT  # max=12, but will create 11 such shared prompts
