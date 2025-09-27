@@ -1,6 +1,6 @@
-CFG=
-DATASET=$1
-OUTPUT=$2
+CFG="BUSI.yaml"
+DATASET="BUSI"
+OUTPUT="./output"
 
 SEED=3  # 随机种子
 RANK=16 # LoRA秩（模型微调参数）

@@ -73,21 +73,9 @@ def split_dataset(images_dir, masks_dir, output_dir, train_ratio=0.8, val_ratio=
     print(f"Train: {len(train_data)}, Val: {len(val_data)}, Test: {len(test_data)}")
 
 #使用示例
-images_path = "./data/TUS/images"  # 替换为 images 文件夹路径
-masks_path = "./data/TUS/masks"  # 替换为 masks 文件夹路径
-output_path = "./data/TUS"
 # images_path = "./data/CVC-ClinicDB/images"  # 替换为 images 文件夹路径
 # masks_path = "./data/CVC-ClinicDB/masks"  # 替换为 masks 文件夹路径
 # output_path = "./data/CVC-ClinicDB"  # 替换为输出目录路径
-
-
-# CVC-ClinicDB Train: 489, Val: 61, Test: 62   总共612
-# CVC-ColonDB Train: 304, Val: 38, Test: 38   总共380
-# ETIS-LaribPolypDB Train: 157, Val: 20, Test: 19  总共196
-
-# BUSI Train:532 ,val:66 ,Test:67  总共635
-# TUS  Train:785 ,val:98 ,Test:99  总共983
-
 
 def rename(data_path, out_path):
     for filename in os.listdir(data_path):
@@ -99,8 +87,38 @@ def rename(data_path, out_path):
             os.rename(old_dir,new_dir)
     print("操作完成")
 
+def get_datatype(data_type):
+    # data_type = "BUSI"
+    if data_type == "BUSI":
+        images_path = "./data/BUSI/images"  # 替换为 images 文件夹路径
+        masks_path = "./data/BUSI/masks"  # 替换为 masks 文件夹路径
+        output_path = "./data/BUSI"
+    elif data_type == "TUS":
+        images_path = "./data/TUS/images"
+        masks_path = "./data/TUS/masks"
+        output_path = "./data/TUS"
+    elif data_type == "CVC-ClinicDB":
+        images_path = "./data/CVC-ClinicDB/images"
+        masks_path = "./data/CVC-ClinicDB/masks"
+        output_path = "./data/CVC-ClinicDB"
+    elif data_type == "CVC-ColonDB":
+        images_path = "./data/CVC-ColonDB/images"
+        masks_path = "./data/CVC-ColonDB/masks"
+        output_path = "./data/CVC-ColonDB"
+    elif data_type == "ETIS-LaribPolypDB":
+        images_path = "./data/ETIS-LaribPolypDB/images"
+        masks_path = "./data/ETIS-LaribPolypDB/masks"
+        output_path = "./data/ETIS-LaribPolypDB"
 
+    return images_path, masks_path, output_path
 if __name__ == '__main__':
     # rename(data_path="./data/BUSI/new", out_path="./data/BUSI/images")
-    split_dataset(images_path, masks_path, output_path)
+    """数据集划分"""
+    images_dir, masks_dir, output_dir = get_datatype("ETIS-LaribPolypDB")
+    split_dataset(images_dir, masks_dir, output_dir)
 
+    # CVC-ClinicDB Train: 489, Val: 61, Test: 62   总共612
+    # CVC-ColonDB Train: 304, Val: 38, Test: 38   总共380
+    # ETIS-LaribPolypDB Train: 157, Val: 20, Test: 19  总共196
+    # BUSI Train:532 ,val:66 ,Test:67  总共635
+    # TUS  Train:785 ,val:98 ,Test:99  总共983
