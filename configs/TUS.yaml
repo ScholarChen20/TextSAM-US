@@ -33,4 +33,4 @@ PROMPT_LEARNER:
   CSC: False
   CLASS_TOKEN_POSITION: "end"
   BACKBONE: "ViT-B/16"
-  CLASSNAMES: ["background", "tumor", "nodule"]
+  CLASSNAMES: ["background", "nodule"]
