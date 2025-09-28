@@ -83,6 +83,7 @@ class DatasetSegmentation(Dataset):
        
         if(self.type == 'binary'):
             ground_truth_mask = np.uint8(ground_truth_mask > 0)
+
         unique_labels = np.unique(ground_truth_mask)
         if(self.cfg.DATASET.IGNORE_BG and len(unique_labels)>= 2):
             unique_labels = unique_labels[1:].astype(np.uint8)  # Exclude background (0)
@@ -94,7 +95,9 @@ class DatasetSegmentation(Dataset):
         inputs["ground_truth_mask"] = torch.from_numpy(np.stack(binary_masks))
         inputs["image_name"] = basename(img_path)
         inputs["mask_name"] = basename(mask_path)
-        inputs["text_labels"] = torch.from_numpy(unique_labels)[None,:]
+        # inputs["text_labels"] = torch.from_numpy(unique_labels)[None,:]
+        inputs["text_labels"] = torch.from_numpy(unique_labels.astype(np.uint8))
+
         return inputs
 
 

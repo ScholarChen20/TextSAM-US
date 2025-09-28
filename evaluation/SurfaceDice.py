@@ -397,7 +397,7 @@ def compute_surface_distances(mask_gt, mask_pred, spacing_mm):
   if borders_pred.any():  
     distmap_pred = scipy.ndimage.morphology.distance_transform_edt(~borders_pred, sampling=spacing_mm)
   else:
-    distmap_pred = np.Inf * np.ones(borders_pred.shape)
+    distmap_pred = np.inf * np.ones(borders_pred.shape)  #修改
 
   # compute the area of each surface element
   surface_area_map_gt = neighbour_code_to_surface_area[neighbour_code_map_gt]

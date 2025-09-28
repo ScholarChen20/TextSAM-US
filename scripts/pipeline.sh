@@ -8,14 +8,14 @@ RANK=16 # LoRA秩（模型微调参数）
 CTX=4 # 上下文token数量
 
 echo "*****begin training*****"
-accelerate launch \
-      --num_processes=3 \
-      --num_machines=1 \
-      --gpu_ids='1,2,0' \
-      --mixed_precision=fp16 \
-      --dynamo_backend=no \
-      --main_process_port=29536 \
-      train.py
+#accelerate launch \
+#      --num_processes=3 \
+#      --num_machines=1 \
+#      --gpu_ids='1,2,0' \
+#      --mixed_precision=fp16 \
+#      --dynamo_backend=no \
+#      --main_process_port=29536 \
+#      train.py
 #      --config-file configs/${CFG}.yaml \--output-dir ${OUTPUT} \--seed ${SEED}
 
 echo "*****begin inference*****"
