@@ -100,7 +100,7 @@ with torch.no_grad():
         f"{results_name}_{checkpoint_type}.pth"
     )
 
-    classnames = cfg.PROMPT_LEARNER.CLASSNAMES
+    classnames = cfg.PROMPT_LEARNER.CLASSNAMES  #["background", "nodule"]
 
     if cfg.SAM.MODEL == "vit_b":
         sam = build_textsam_vit_b(cfg=cfg, checkpoint=cfg.SAM.CHECKPOINT, classnames=classnames)
@@ -135,7 +135,13 @@ with torch.no_grad():
         outputs = model(batched_input=batch, multimask_output=False)
         stk_gt = batch[0]["ground_truth_mask"]
         stk_out = torch.cat([out["masks"].squeeze(0) for out in outputs], dim=0)
-        text_labels = batch[0]["text_labels"].squeeze(0)
+
+        # stk_gt = (stk_gt > 0.5).float()
+        # print("GT min:", stk_gt.min().item(), "max:", stk_gt.max().item(), "mean:", stk_gt.mean().item())
+        # stk_out = (stk_out > 0.5).float()
+        # print("Pred min:", stk_out.min().item(), "max:", stk_out.max().item(), "mean:", stk_out.mean().item())
+
+        text_labels = batch[0]["text_labels"]
 
         all_points = []
         all_labels = []
@@ -184,7 +190,8 @@ with torch.no_grad():
         bboxes = torch.stack(all_boxes, dim=0).to(device)  # (B, 4)
         batch[0]["points"] = points
         batch[0]["boxes"] = bboxes
-
+        # print("Boxes:", batch[0]["boxes"])  # 测试
+        # print("Points:", batch[0]["points"][0].shape, batch[0]["points"][1])
 
         # Stack all batch outputs
         # point_coords = torch.stack(all_points)  # shape: (B, N, 2) if N same across batch
