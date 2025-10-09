@@ -147,31 +147,22 @@ with torch.no_grad():
         all_labels = []
         all_boxes = []
 
-        # for b in range(stk_out.shape[0]):  # batch size
-        #     mask = stk_out[b]              # shape: (H, W) or (C, H, W)
-
-            # pts, lbls = utils.get_centroid_points(mask.detach().cpu().numpy(), text_labels.detach().cpu().numpy())
-            # box = utils.get_bounding_box(mask.detach().cpu().numpy())
-            # all_boxes.append(box)
-            # all_points.append(pts)
-            # all_labels.append(lbls)
-
-        for b in range(stk_out.shape[0]):  # batch size
-            mask = stk_out[b].detach().cpu().numpy()
+        for b in range(stk_gt.shape[0]):  # batch size
+            mask = stk_gt[b].detach().cpu().numpy()
 
             labels = text_labels.detach().cpu().numpy().reshape(-1)  # 确保是1D
             pts, lbls = utils.get_centroid_points(mask, labels)
-
-            # 转为 tensor
-            pts_tensor = torch.tensor(pts, dtype=torch.float32)
-            lbls_tensor = torch.tensor(lbls, dtype=torch.int64)
-
+            pts_tensor = torch.tensor(pts, dtype=torch.float32).to(device)
+            lbls_tensor = torch.tensor(lbls, dtype=torch.int64).to(device)
             box = utils.get_bounding_box(mask)
-            box_tensor = torch.tensor(box, dtype=torch.float32)
+            box_tensor = torch.tensor(box, dtype=torch.float32).to(device)
+            print("Box:", box)
+            print("Point:", pts, "Label:", lbls)
 
             all_points.append(pts_tensor)
             all_labels.append(lbls_tensor)
             all_boxes.append(box_tensor)
+
         # ==== Padding points 与 labels ====
         max_points = max([p.shape[0] for p in all_points])  # 找到 batch 中最多的点数
         padded_points = []
@@ -193,14 +184,6 @@ with torch.no_grad():
         # print("Boxes:", batch[0]["boxes"])  # 测试
         # print("Points:", batch[0]["points"][0].shape, batch[0]["points"][1])
 
-        # Stack all batch outputs
-        # point_coords = torch.stack(all_points)  # shape: (B, N, 2) if N same across batch
-        # point_labels = torch.stack(all_labels)  # shape: (B, N)
-        # points = point_coords, point_labels
-        # # Stack to shape (B, 1, 4) — [x_min, y_min, x_max, y_max] per sample
-        # bboxes = torch.cat(all_boxes, dim=0)  # (B, 4)
-        # batch[0]["points"] = points
-        # batch[0]["boxes"] = bboxes
 
         outputs = model(batched_input=batch, multimask_output=False)
         stk_out = torch.cat([out["masks"].squeeze(0) for out in outputs], dim=0)
@@ -211,17 +194,20 @@ with torch.no_grad():
         all_boxes = []
 
         for b in range(stk_out.shape[0]):  # batch size
-            mask = stk_out[b]              # shape: (H, W) or (C, H, W)
+            mask = stk_gt[b].detach().cpu().numpy()            # shape: (H, W) or (C, H, W)
 
-            # todo
             labels = text_labels.detach().cpu().numpy().reshape(-1)  # 保证是1D
-            pts, lbls = utils.get_centroid_points(mask.detach().cpu().numpy(), labels)
+            pts, lbls = utils.get_centroid_points(mask, labels)
+            box = utils.get_bounding_box(mask)
+            pts_tensor = torch.tensor(pts, dtype=torch.float32).to(device)
+            lbls_tensor = torch.tensor(lbls, dtype=torch.int64).to(device)
+            box_tensor = torch.tensor(box, dtype=torch.float32).to(device)
 
-            # pts, lbls = utils.get_centroid_points(mask.detach().cpu().numpy(), text_labels.detach().cpu().numpy())
-            box = utils.get_bounding_box(mask.detach().cpu().numpy())
-            all_boxes.append(box)
-            all_points.append(pts)
-            all_labels.append(lbls)
+            all_boxes.append(box_tensor)
+            all_points.append(pts_tensor)
+            all_labels.append(lbls_tensor)
+            print("Box:", box)
+            print("Point:", pts, "Label:", lbls)
 
         # Stack all batch outputs
         point_coords = torch.stack(all_points)  # shape: (B, N, 2) if N same across batch

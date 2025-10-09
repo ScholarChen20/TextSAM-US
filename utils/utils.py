@@ -93,19 +93,25 @@ def get_bounding_box(ground_truth_map: np.array, device="cuda:0") -> list:
 
   """
   # get bounding box from mask
-  idx = np.where(ground_truth_map > 0)
-  x_indices = idx[1]
-  y_indices = idx[0]
-  x_min, x_max = np.min(x_indices), np.max(x_indices)
-  y_min, y_max = np.min(y_indices), np.max(y_indices)
-  # add perturbation to bounding box coordinates
-  H, W = ground_truth_map.shape
-  x_min = max(0, x_min - np.random.randint(0, 20))
-  x_max = min(W, x_max + np.random.randint(0, 20))
-  y_min = max(0, y_min - np.random.randint(0, 20))
-  y_max = min(H, y_max + np.random.randint(0, 20))
-  bbox = torch.tensor([x_min, y_min, x_max, y_max], dtype=torch.int, device=device).unsqueeze(0)
-  return bbox
+  # idx = np.where(ground_truth_map > 0)
+  # x_indices = idx[1]
+  # y_indices = idx[0]
+  # x_min, x_max = np.min(x_indices), np.max(x_indices)
+  # y_min, y_max = np.min(y_indices), np.max(y_indices)
+  # # add perturbation to bounding box coordinates
+  # H, W = ground_truth_map.shape
+  # x_min = max(0, x_min - np.random.randint(0, 20))
+  # x_max = min(W, x_max + np.random.randint(0, 20))
+  # y_min = max(0, y_min - np.random.randint(0, 20))
+  # y_max = min(H, y_max + np.random.randint(0, 20))
+  # bbox = torch.tensor([x_min, y_min, x_max, y_max], dtype=torch.int, device=device).unsqueeze(0)
+  # return bbox
+
+  y, x = np.where(ground_truth_map > 0)
+  if len(x) == 0 or len(y) == 0:
+      return [0, 0, 0, 0]  # 无前景时
+  return [x.min(), y.min(), x.max(), y.max()]
+
 
 def get_extreme_points(ground_truth_mask, unique_labels, device="cuda"):
     unique_labels = unique_labels.detach().cpu().numpy()
@@ -130,15 +136,21 @@ def get_extreme_points(ground_truth_mask, unique_labels, device="cuda"):
     return torch.tensor(points, dtype=torch.float, device=device), torch.tensor(point_labels, dtype=torch.long, device=device)
 
 def get_centroid_points(ground_truth_mask, unique_labels, device='cuda'):
-    points = []
-    point_labels = []
-    for label in unique_labels:
-        binary_mask = ground_truth_mask == label
-        if np.any(binary_mask):
-            cy, cx = center_of_mass(binary_mask)
-            points.append([cx, cy])
-            point_labels.append(label)
-    return torch.tensor(points, dtype=torch.float, device=device), torch.tensor(point_labels, dtype=torch.long, device=device)
+    # points = []
+    # point_labels = []
+    # for label in unique_labels:
+    #     binary_mask = ground_truth_mask == label
+    #     if np.any(binary_mask):
+    #         cy, cx = center_of_mass(binary_mask)
+    #         points.append([cx, cy])
+    #         point_labels.append(label)
+    # return torch.tensor(points, dtype=torch.float, device=device), torch.tensor(point_labels, dtype=torch.long, device=device)
+
+    y, x = np.where(ground_truth_mask > 0)
+    if len(x) == 0 or len(y) == 0:
+        return np.zeros((1, 2)), np.array([0])
+    cx, cy = x.mean(), y.mean()
+    return np.array([[cx, cy]]), np.array([1])
 
 def get_random_points(ground_truth_mask, unique_labels, num_points_per_label=1, device="cuda"):
     points = []

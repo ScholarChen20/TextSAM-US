@@ -19,7 +19,7 @@ echo "*****begin training*****"
 #      --config-file configs/${CFG}.yaml \--output-dir ${OUTPUT} \--seed ${SEED}
 
 echo "*****begin inference*****"
-python inference.py --config-file configs/${CFG}.yaml \
+CUDA_VISIBLE_DEVICES=1 python inference.py --config-file configs/${CFG}.yaml \
 --output-dir ${OUTPUT} \
 --seed ${SEED}
 

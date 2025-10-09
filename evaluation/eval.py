@@ -45,6 +45,13 @@ with tqdm(filenames) as pbar:
         seg_mask = cv2.threshold(seg_mask, 127, 255, cv2.THRESH_BINARY)[1]
         gt_data = np.uint8(gt_mask)
         seg_data = np.uint8(seg_mask)
+        if idx < 3:  # 只打印前3张
+            print(f"\n[{idx}] {name}")
+            print("gt unique:", np.unique(gt_mask))
+            print("seg unique:", np.unique(seg_mask))
+            print("gt max:", gt_mask.max(), "seg max:", seg_mask.max())
+            print("gt sum:", np.sum(gt_mask > 0), "seg sum:", np.sum(seg_mask > 0))
+
 
         gt_labels = np.unique(gt_data)[1:]
         seg_labels = np.unique(seg_data)[1:]
