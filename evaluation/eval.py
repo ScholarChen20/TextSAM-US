@@ -3,9 +3,10 @@ import cv2
 import os
 from collections import OrderedDict
 import pandas as pd
-from SurfaceDice import compute_surface_distances, compute_surface_dice_at_tolerance, compute_dice_coefficient
+from SurfaceDice import compute_surface_distances, compute_surface_dice_at_tolerance, compute_dice_coefficient, compute_iou_coefficient
 from tqdm import tqdm
 import argparse
+
 
 join = os.path.join
 basename = os.path.basename
@@ -32,6 +33,7 @@ seg_metrics = OrderedDict(
     Name = list(),
     DSC = list(),
     NSD = list(),
+    IOU = list(),
 )
 
 # Compute metrics for each file
@@ -61,6 +63,7 @@ with tqdm(filenames) as pbar:
 
         DSC_arr = []
         NSD_arr = []
+        IOU_arr = []
         for i in labels:
             if np.sum(gt_data==i)==0 and np.sum(seg_data==i)==0:
                 DSC_i = 1
@@ -71,22 +74,28 @@ with tqdm(filenames) as pbar:
             else:
                 i_gt, i_seg = gt_data == i, seg_data == i
                 DSC_i = compute_dice_coefficient(i_gt, i_seg)
+                IOU_i = compute_iou_coefficient(i_gt, i_seg)
                 surface_distances = compute_surface_distances(i_gt[..., None], i_seg[..., None], [1, 1, 1])
                 NSD_i = compute_surface_dice_at_tolerance(surface_distances, 3)
 
             DSC_arr.append(DSC_i)
+            IOU_arr.append(IOU_i)
             NSD_arr.append(NSD_i)
 
         DSC = np.mean(DSC_arr)
         NSD = np.mean(NSD_arr)
+        IOU = np.mean(IOU_arr)
         seg_metrics['DSC'].append(round(DSC, 4))
         seg_metrics['NSD'].append(round(NSD, 4))
+        seg_metrics['IOU'].append(round(IOU, 4))
 
         # Update tqdm bar with running means
         mean_dsc = np.mean(seg_metrics['DSC'])
         mean_nsd = np.mean(seg_metrics['NSD'])
+        mean_iou = np.mean(seg_metrics['IOU'])
         pbar.set_postfix({
             'Mean DSC': f"{mean_dsc:.4f}",
+            'Mean IOU': f"{mean_iou:.4f}",
             'Mean NSD': f"{mean_nsd:.4f}"
         })
 
@@ -97,12 +106,16 @@ dataframe.to_csv(save_path, index=False)
 # Calculate and print average and std deviation for metrics
 case_avg_DSC = dataframe['DSC'].mean()
 case_avg_NSD = dataframe['NSD'].mean()
+case_avg_IOU = dataframe['IOU'].mean()
 case_std_DSC = dataframe['DSC'].std()
 case_std_NSD = dataframe['NSD'].std()
+case_std_IOU = dataframe['IOU'].std()
 
 print(20 * '>')
 print(f'Average DSC for {basename(seg_path)}: {case_avg_DSC}')
 print(f'Standard deviation DSC for {basename(seg_path)}: {case_std_DSC}')
+print(f'Average IOU for {basename(seg_path)}: {case_avg_IOU}')
+print(f'Standard deviation IOU for {basename(seg_path)}: {case_std_IOU}')
 print(f'Average NSD for {basename(seg_path)}: {case_avg_NSD}')
 print(f'Standard deviation NSD for {basename(seg_path)}: {case_std_NSD}')
 print(20 * '<')

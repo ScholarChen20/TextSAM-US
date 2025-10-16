@@ -36,7 +36,7 @@ def get_arguments():
     "--config-file",
     # required=True,
     type=str,
-    default="configs/TUS.yaml",   # 数据集配置文件
+    default="configs/BUS.yaml",   # 数据集配置文件
     help="Path to config file",
     )
     parser.add_argument(

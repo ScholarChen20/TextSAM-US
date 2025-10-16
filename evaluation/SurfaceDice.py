@@ -496,4 +496,31 @@ def compute_dice_coefficient(mask_gt, mask_pred):
     return np.NaN
   volume_intersect = (mask_gt & mask_pred).sum()
   return 2*volume_intersect / volume_sum
- 
+
+
+def compute_iou_coefficient(mask_gt, mask_pred):
+  """Compute Intersection over Union.
+
+  Compute the Intersection over Union (IoU) between the ground truth mask `mask_gt`
+  and the predicted mask `mask_pred`.
+
+  Args:
+      mask_gt: Numpy array of type bool. The ground truth mask.
+      mask_pred: Numpy array of type bool. The predicted mask.
+
+  Returns:
+      the IoU as float. If both masks are empty, the result is NaN
+  """
+  # 确保是bool类型
+  mask_gt = mask_gt.astype(bool)
+  mask_pred = mask_pred.astype(bool)
+
+  # 计算交集和并集
+  intersection = np.logical_and(mask_gt, mask_pred).sum()
+  union = np.logical_or(mask_gt, mask_pred).sum()
+
+  # 如果并集为0，返回NaN
+  if union == 0:
+    return np.nan
+
+  return intersection / union
