@@ -56,16 +56,6 @@ def logger_config(log_path):
     loggerr.addHandler(console)
     return loggerr
 
-def showFig(stk_out,stk_gt):
-    import matplotlib.pyplot as plt
-    plt.subplot(1, 2, 1)
-    plt.imshow(stk_out[0].cpu().numpy(), cmap="gray")
-    plt.title("Prediction")
-    plt.subplot(1, 2, 2)
-    plt.imshow(stk_gt[0].cpu().numpy(), cmap="gray")
-    plt.title("Ground Truth")
-    plt.show()
-
 device = "cuda" if torch.cuda.is_available() else "cpu"
 cfg = get_arguments()
 
@@ -100,7 +90,7 @@ with torch.no_grad():
         f"{results_name}_{checkpoint_type}.pth"
     )
 
-    classnames = cfg.PROMPT_LEARNER.CLASSNAMES  #["background", "nodule"]
+    classnames = cfg.PROMPT_LEARNER.CLASSNAMES
 
     if cfg.SAM.MODEL == "vit_b":
         sam = build_textsam_vit_b(cfg=cfg, checkpoint=cfg.SAM.CHECKPOINT, classnames=classnames)
@@ -135,82 +125,20 @@ with torch.no_grad():
         outputs = model(batched_input=batch, multimask_output=False)
         stk_gt = batch[0]["ground_truth_mask"]
         stk_out = torch.cat([out["masks"].squeeze(0) for out in outputs], dim=0)
-        # todo 模型输出经过sigmoid
-        stk_out = torch.sigmoid(stk_out)
-        stk_out = (stk_out > 0.5).float().to(torch.uint8)
-
-        # stk_gt = (stk_gt > 0.5).float()
-        # print("GT min:", stk_gt.min().item(), "max:", stk_gt.max().item(), "mean:", stk_gt.mean().item())
-        # stk_out = (stk_out > 0.5).float()
-        # print("Pred min:", stk_out.min().item(), "max:", stk_out.max().item(), "mean:", stk_out.mean().item())
-
-        text_labels = batch[0]["text_labels"]
-
-        all_points = []
-        all_labels = []
-        all_boxes = []
-
-        for b in range(stk_gt.shape[0]):  # batch size
-            mask = stk_gt[b].detach().cpu().numpy()
-
-            labels = text_labels.detach().cpu().numpy().reshape(-1)  # 确保是1D
-            pts, lbls = utils.get_centroid_points(mask, labels)
-            pts_tensor = torch.tensor(pts, dtype=torch.float32).to(device)
-            lbls_tensor = torch.tensor(lbls, dtype=torch.int64).to(device)
-            box = utils.get_bounding_box(mask)
-            box_tensor = torch.tensor(box, dtype=torch.float32).to(device)
-            # print("Box:", box)
-            # print("Point:", pts, "Label:", lbls)
-
-            all_points.append(pts_tensor)
-            all_labels.append(lbls_tensor)
-            all_boxes.append(box_tensor)
-
-        # ==== Padding points 与 labels ====
-        max_points = max([p.shape[0] for p in all_points])  # 找到 batch 中最多的点数
-        padded_points = []
-        padded_labels = []
-        for p, l in zip(all_points, all_labels):
-            pad_len = max_points - p.shape[0]
-            if pad_len > 0:
-                p = torch.cat([p, torch.zeros(pad_len, 2, dtype=torch.float32)], dim=0)
-                l = torch.cat([l, torch.full((pad_len,), -1, dtype=torch.int64)], dim=0)  # -1表示无效标签
-            padded_points.append(p)
-            padded_labels.append(l)
-        point_coords = torch.stack(padded_points, dim=0)  # (B, N, 2)
-        point_labels = torch.stack(padded_labels, dim=0)  # (B, N)
-        points = (point_coords.to(device), point_labels.to(device))
-        # ==== Boxes ====
-        bboxes = torch.stack(all_boxes, dim=0).to(device)  # (B, 4)
-        batch[0]["points"] = points
-        batch[0]["boxes"] = bboxes
-        # print("Boxes:", batch[0]["boxes"])  # 测试
-        # print("Points:", batch[0]["points"][0].shape, batch[0]["points"][1])
-
-
-        outputs = model(batched_input=batch, multimask_output=False)
-        stk_out = torch.cat([out["masks"].squeeze(0) for out in outputs], dim=0)
-
+        text_labels = batch[0]["text_labels"].squeeze(0)
 
         all_points = []
         all_labels = []
         all_boxes = []
 
         for b in range(stk_out.shape[0]):  # batch size
-            mask = stk_gt[b].detach().cpu().numpy()            # shape: (H, W) or (C, H, W)
+            mask = stk_out[b]              # shape: (H, W) or (C, H, W)
 
-            labels = text_labels.detach().cpu().numpy().reshape(-1)  # 保证是1D
-            pts, lbls = utils.get_centroid_points(mask, labels)
-            box = utils.get_bounding_box(mask)
-            pts_tensor = torch.tensor(pts, dtype=torch.float32).to(device)
-            lbls_tensor = torch.tensor(lbls, dtype=torch.int64).to(device)
-            box_tensor = torch.tensor(box, dtype=torch.float32).to(device)
-
-            all_boxes.append(box_tensor)
-            all_points.append(pts_tensor)
-            all_labels.append(lbls_tensor)
-            # print("Box:", box)
-            # print("Point:", pts, "Label:", lbls)
+            pts, lbls = utils.get_centroid_points(mask.detach().cpu().numpy(), text_labels.detach().cpu().numpy())
+            box = utils.get_bounding_box(mask.detach().cpu().numpy())
+            all_boxes.append(box)
+            all_points.append(pts)
+            all_labels.append(lbls)
 
         # Stack all batch outputs
         point_coords = torch.stack(all_points)  # shape: (B, N, 2) if N same across batch
@@ -225,21 +153,39 @@ with torch.no_grad():
 
         outputs = model(batched_input=batch, multimask_output=False)
         stk_out = torch.cat([out["masks"].squeeze(0) for out in outputs], dim=0)
-        stk_out = stk_out.float()
+
+
+        all_points = []
+        all_labels = []
+        all_boxes = []
+
+        for b in range(stk_out.shape[0]):  # batch size
+            mask = stk_out[b]              # shape: (H, W) or (C, H, W)
+
+            pts, lbls = utils.get_centroid_points(mask.detach().cpu().numpy(), text_labels.detach().cpu().numpy())
+            box = utils.get_bounding_box(mask.detach().cpu().numpy())
+            all_boxes.append(box)
+            all_points.append(pts)
+            all_labels.append(lbls)
+
+        # Stack all batch outputs
+        point_coords = torch.stack(all_points)  # shape: (B, N, 2) if N same across batch
+        point_labels = torch.stack(all_labels)  # shape: (B, N)
+        points = point_coords, point_labels
+
+        # Stack to shape (B, 1, 4) — [x_min, y_min, x_max, y_max] per sample
+        bboxes = torch.cat(all_boxes, dim=0)  # (B, 4)
+
+        batch[0]["points"] = points
+        batch[0]["boxes"] = bboxes
+
+        outputs = model(batched_input=batch, multimask_output=False)
+        stk_out = torch.cat([out["masks"].squeeze(0) for out in outputs], dim=0)
+
         for j, label in enumerate(text_labels):
             label_j = int(label.detach().cpu())
-            # print("Pred max:", stk_out.max().item(), "Pred min:", stk_out.min().item(), "mean:", stk_out.mean().item())
-
-            # stk_out = (stk_out > 0.5).float() # 阈值化
-            # mask_pred = (stk_out[j].detach().cpu().numpy() * 255).astype(np.uint8)
-            mask_pred = (stk_out[j] > 0.5).float().detach().cpu().numpy() * 255  # 正确阈值化
-            mask_pred = mask_pred.astype(np.uint8)
-
-            gt_mask = (stk_gt[j].detach().cpu().numpy() * 255).astype(np.uint8)
-
-            # mask_pred = np.uint8(stk_out[j].detach().cpu())
-            # gt_mask = np.uint8(stk_gt[j].detach().cpu())
-            # print("Pred shape:", stk_out.shape, "GT shape:", stk_gt.shape)   #(1,256,256) shape size
+            mask_pred = np.uint8(stk_out[j].detach().cpu())
+            gt_mask = np.uint8(stk_gt[j].detach().cpu())
 
             cv2.imwrite(os.path.join(cfg.output_dir,
                                      cfg.DATASET.NAME,
@@ -247,7 +193,7 @@ with torch.no_grad():
                                      f"seed{cfg.seed}",
                                      classnames[label_j],
                                      results_name,
-                                     batch[0]["mask_name"]), mask_pred)
+                                     batch[0]["mask_name"]), mask_pred * 255)
 
             cv2.imwrite(os.path.join(cfg.output_dir,
                                      cfg.DATASET.NAME,

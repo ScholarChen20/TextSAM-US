@@ -1,8 +1,8 @@
 DATASET:
-  NAME: "EUS"
-  TRAIN_PATH: "./data/EUS/train"
-  VAL_PATH: "./data/EUS/val"
-  TEST_PATH: "./data/EUS/test"
+  NAME: "BUS"
+  TRAIN_PATH: "./data/BUS/train"
+  VAL_PATH: "./data/BUS/val"
+  TEST_PATH: "./data/BUS/test"
   IMAGE_FORMAT: ".png"
   MASK_FORMAT: ".png"
   NUM_SHOTS: -1
