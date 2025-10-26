@@ -93,6 +93,10 @@ def get_datatype(data_type):
         images_path = "./data/BUSI/images"  # 替换为 images 文件夹路径
         masks_path = "./data/BUSI/masks"  # 替换为 masks 文件夹路径
         output_path = "./data/BUSI"
+    elif data_type == "BUS-SZU":
+        images_path = "/data1/cwq/MedicalDP/SwinUmamba/swin-umamba/data/BUS-SZU/Breast_images"
+        masks_path = "/data1/cwq/MedicalDP/SwinUmamba/swin-umamba/data/BUS-SZU/Breast_masks"
+        output_path = "/data1/cwq/MedicalDP/SwinUmamba/swin-umamba/data/BUS-SZU"
     elif data_type == "TUS":
         images_path = "./data/TUS/images"
         masks_path = "./data/TUS/masks"
@@ -114,7 +118,7 @@ def get_datatype(data_type):
 if __name__ == '__main__':
     # rename(data_path="./data/BUSI/new", out_path="./data/BUSI/images")
     """数据集划分"""
-    images_dir, masks_dir, output_dir = get_datatype("ETIS-LaribPolypDB")
+    images_dir, masks_dir, output_dir = get_datatype("BUS-SZU")
     split_dataset(images_dir, masks_dir, output_dir)
 
     # CVC-ClinicDB Train: 489, Val: 61, Test: 62   总共612
@@ -122,3 +126,4 @@ if __name__ == '__main__':
     # ETIS-LaribPolypDB Train: 157, Val: 20, Test: 19  总共196
     # BUSI Train:532 ,val:66 ,Test:67  总共635
     # TUS  Train:785 ,val:98 ,Test:99  总共983
+    # BUS-SZU Train: 3900, Val: 487, Test: 488 总共4875

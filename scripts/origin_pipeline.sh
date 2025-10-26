@@ -7,9 +7,9 @@ RANK=16   # LoRA秩（模型微调参数）
 CTX=4  # 上下文token数量
 
 
-#python train.py --config-file configs/${CFG}.yaml \
-#--output-dir ${OUTPUT} \
-#--seed ${SEED}
+python train.py --config-file configs/${CFG}.yaml \
+--output-dir ${OUTPUT} \
+--seed ${SEED}
 
 #python inference.py --config-file configs/${CFG}.yaml \
 #--output-dir ${OUTPUT} \
