@@ -100,7 +100,7 @@ with torch.no_grad():
         f"{results_name}_{checkpoint_type}.pth"
     )
 
-    classnames = cfg.PROMPT_LEARNER.CLASSNAMES  #["background", "nodule"]
+    classnames = cfg.PROMPT_LEARNER.CLASSNAMES  #["background", "tumor"]
 
     if cfg.SAM.MODEL == "vit_b":
         sam = build_textsam_vit_b(cfg=cfg, checkpoint=cfg.SAM.CHECKPOINT, classnames=classnames)
@@ -135,11 +135,10 @@ with torch.no_grad():
         outputs = model(batched_input=batch, multimask_output=False)
         stk_gt = batch[0]["ground_truth_mask"]
         stk_out = torch.cat([out["masks"].squeeze(0) for out in outputs], dim=0)
-        # todo 模型输出经过sigmoid
         stk_out = torch.sigmoid(stk_out)
         stk_out = (stk_out > 0.5).float().to(torch.uint8)
 
-        # stk_gt = (stk_gt > 0.5).float()
+        # stk_gt = (stk_gt > 0.5).float()  # todo 调试打印日志
         # print("GT min:", stk_gt.min().item(), "max:", stk_gt.max().item(), "mean:", stk_gt.mean().item())
         # stk_out = (stk_out > 0.5).float()
         # print("Pred min:", stk_out.min().item(), "max:", stk_out.max().item(), "mean:", stk_out.mean().item())
@@ -150,8 +149,8 @@ with torch.no_grad():
         all_labels = []
         all_boxes = []
 
-        for b in range(stk_gt.shape[0]):  # batch size
-            mask = stk_gt[b].detach().cpu().numpy()
+        for b in range(stk_out.shape[0]):  # batch size
+            mask = stk_out[b].detach().cpu().numpy()
 
             labels = text_labels.detach().cpu().numpy().reshape(-1)  # 确保是1D
             pts, lbls = utils.get_centroid_points(mask, labels)
@@ -161,7 +160,6 @@ with torch.no_grad():
             box_tensor = torch.tensor(box, dtype=torch.float32).to(device)
             # print("Box:", box)
             # print("Point:", pts, "Label:", lbls)
-
             all_points.append(pts_tensor)
             all_labels.append(lbls_tensor)
             all_boxes.append(box_tensor)
@@ -186,7 +184,6 @@ with torch.no_grad():
         batch[0]["boxes"] = bboxes
         # print("Boxes:", batch[0]["boxes"])  # 测试
         # print("Points:", batch[0]["points"][0].shape, batch[0]["points"][1])
-
 
         outputs = model(batched_input=batch, multimask_output=False)
         stk_out = torch.cat([out["masks"].squeeze(0) for out in outputs], dim=0)
@@ -229,18 +226,14 @@ with torch.no_grad():
         for j, label in enumerate(text_labels):
             label_j = int(label.detach().cpu())
             # print("Pred max:", stk_out.max().item(), "Pred min:", stk_out.min().item(), "mean:", stk_out.mean().item())
-
             # stk_out = (stk_out > 0.5).float() # 阈值化
             # mask_pred = (stk_out[j].detach().cpu().numpy() * 255).astype(np.uint8)
             mask_pred = (stk_out[j] > 0.5).float().detach().cpu().numpy() * 255  # 正确阈值化
             mask_pred = mask_pred.astype(np.uint8)
-
             gt_mask = (stk_gt[j].detach().cpu().numpy() * 255).astype(np.uint8)
-
             # mask_pred = np.uint8(stk_out[j].detach().cpu())
             # gt_mask = np.uint8(stk_gt[j].detach().cpu())
             # print("Pred shape:", stk_out.shape, "GT shape:", stk_gt.shape)   #(1,256,256) shape size
-
             cv2.imwrite(os.path.join(cfg.output_dir,
                                      cfg.DATASET.NAME,
                                      "seg_results",
