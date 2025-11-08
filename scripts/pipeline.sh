@@ -26,12 +26,12 @@ echo "*****begin training*****"
 
 echo "*****begin inference*****"
 #CUDA_VISIBLE_DEVICES=1
-#python inference.py --config-file configs/${CFG}.yaml \
-#--output-dir ${OUTPUT} \
-#--seed ${SEED}
+python inference.py --config-file configs/${CFG}.yaml \
+--output-dir ${OUTPUT} \
+--seed ${SEED}
 
 echo "*****begin evaluation*****"
 python evaluation/eval.py \
---gt_path /data1/cwq/MedicalDP/SwinUmamba/swin-umamba/data/BUS-SZU/test/masks \
+--gt_path ./data/BUS-SZU/test/masks \
 --seg_path ./${OUTPUT}/${DATASET}/seg_results/seed${SEED}/tumor/LORA${RANK}_SHOTS-1_NCTX${CTX}_CSCFalse_CTPend \
 --save_path ./${OUTPUT}/${DATASET}/seg_results/seed${SEED}/tumor/test.csv

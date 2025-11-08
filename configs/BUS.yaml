@@ -1,8 +1,8 @@
 DATASET:
   NAME: "BUS"
-  TRAIN_PATH: "/data1/cwq/MedicalDP/SwinUmamba/swin-umamba/data/BUS-SZU/train"
-  VAL_PATH: "/data1/cwq/MedicalDP/SwinUmamba/swin-umamba/data/BUS-SZU/val"
-  TEST_PATH: "/data1/cwq/MedicalDP/SwinUmamba/swin-umamba/data/BUS-SZU/test"
+  TRAIN_PATH: "./BUS-SZU/train"
+  VAL_PATH: "./data/BUS-SZU/val"
+  TEST_PATH: "./data/BUS-SZU/test"
   IMAGE_FORMAT: ".jpg"
   MASK_FORMAT: ".png"
   NUM_SHOTS: -1
