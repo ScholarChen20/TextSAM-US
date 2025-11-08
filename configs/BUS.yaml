@@ -1,6 +1,6 @@
 DATASET:
   NAME: "BUS"
-  TRAIN_PATH: "./BUS-SZU/train"
+  TRAIN_PATH: "./data/BUS-SZU/train"
   VAL_PATH: "./data/BUS-SZU/val"
   TEST_PATH: "./data/BUS-SZU/test"
   IMAGE_FORMAT: ".jpg"
