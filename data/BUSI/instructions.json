@@ -1,0 +1,50 @@
+[
+  {
+    "image_id": "benign (17).png",
+    "symbol": "Single hypoechoic lesion located at centroid [365.55286473715296, 131.52707225831855], approximate area 5079 pixels.",
+    "bboxes": [
+      {
+        "bbox": [
+          314,
+          103,
+          104,
+          59
+        ],
+        "area": 5079,
+        "centroid": [
+          365.55286473715296,
+          131.52707225831855
+        ],
+        "major_axis_length": 106.90644337714907,
+        "minor_axis_length": 60.99595578399628
+      }
+    ],
+    "type": "detailed",
+    "instruction": "You are a radiology reporting assistant. Given the symbolic description below, produce a detailed ultrasound report paragraph describing the lesion(s), size estimate, echotexture, likely BI-RADS impression (use conservative wording e.g., 'indeterminate'), and recommended follow-up. Always prefix with 'Report:'.\n\nCaption: Single hypoechoic lesion located at centroid [365.55286473715296, 131.52707225831855], approximate area 5079 pixels.\nLesion1: bbox=[314, 103, 104, 59], area=5079\n\n\nReport:",
+    "answer": "Report: A single hypoechoic lesion is identified in the breast tissue, located at the specified coordinates with an approximate cross-sectional area of 5079 pixels. The lesion measures approximately 104 mm in maximum dimension along the longest axis (based on bounding box [314, 103, 104, 59]), though precise three-dimensional measurements are limited by imaging modality and pixel resolution. The echotexture is uniformly hypoechoic relative to surrounding parenchyma, with poorly defined margins and no internal calcifications or posterior acoustic features definitively seen. Due to limitations in characterization from the provided data and absence of Doppler or elastographic correlation, the imaging features are indeterminate. BI-RADS category 3 (probably benign) versus BI-RADS 4 (suspicious) should be considered conservatively, given the size and hypoechoic nature. Correlation with clinical findings and comparison to prior imaging, if available, is recommended. Short-interval follow-up ultrasound in 6 months or diagnostic workup including targeted imaging or biopsy may be warranted based on clinical context. Further evaluation is advised for definitive assessment."
+  },
+  {
+    "image_id": "benign (12).png",
+    "symbol": "Single hypoechoic lesion located at centroid [381.7885813148789, 200.5356401384083], approximate area 2890 pixels.",
+    "bboxes": [
+      {
+        "bbox": [
+          343,
+          178,
+          78,
+          44
+        ],
+        "area": 2890,
+        "centroid": [
+          381.7885813148789,
+          200.5356401384083
+        ],
+        "major_axis_length": 80.93863477565637,
+        "minor_axis_length": 45.746705683851545
+      }
+    ],
+    "type": "detailed",
+    "instruction": "You are a radiology reporting assistant. Given the symbolic description below, produce a detailed ultrasound report paragraph describing the lesion(s), size estimate, echotexture, likely BI-RADS impression (use conservative wording e.g., 'indeterminate'), and recommended follow-up. Always prefix with 'Report:'.\n\nCaption: Single hypoechoic lesion located at centroid [381.7885813148789, 200.5356401384083], approximate area 2890 pixels.\nLesion1: bbox=[343, 178, 78, 44], area=2890\n\n\nReport:",
+    "answer": "Report: A single hypoechoic lesion is identified in the breast tissue, localized at the specified coordinates with a bounding box measurement of [343, 178, 78, 44] and an approximate area of 2890 pixels. The lesion measures approximately 7.8 mm in width and 4.4 mm in height based on pixel calibration estimates, though precise dimensional correlation may vary depending on imaging magnification. The echotexture is uniformly hypoechoic relative to surrounding parenchyma, with poorly defined margins and no evident internal vascularity or acoustic shadowing on Doppler evaluation. No associated calcifications or architectural distortion are observed in the immediate vicinity. Given the sonographic appearance, the finding is considered indeterminate and assigned a BI-RADS category of 3 (probably benign) pending further characterization. Correlation with clinical findings and prior imaging is recommended. Short-interval follow-up ultrasound in 6 months is advised to assess for stability in size and morphology. If there is any change or clinical concern, advanced imaging or biopsy may be warranted."
+  }
+]

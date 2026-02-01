@@ -1,0 +1,48 @@
+[
+  {
+    "image_id": "benign (17).png",
+    "image_path": "D:\\HCMNet\\TextSAM-US\\data\\BUSI\\test_val\\images\\benign (17).png",
+    "mask_path": "D:\\HCMNet\\TextSAM-US\\data\\BUSI\\test_val\\images\\benign (17).png",
+    "caption": "Single hypoechoic lesion located at centroid [365.55286473715296, 131.52707225831855], approximate area 5079 pixels.",
+    "bboxes": [
+      {
+        "bbox": [
+          314,
+          103,
+          104,
+          59
+        ],
+        "area": 5079,
+        "centroid": [
+          365.55286473715296,
+          131.52707225831855
+        ],
+        "major_axis_length": 106.90644337714907,
+        "minor_axis_length": 60.99595578399628
+      }
+    ]
+  },
+  {
+    "image_id": "benign (12).png",
+    "image_path": "D:\\HCMNet\\TextSAM-US\\data\\BUSI\\test_val\\images\\benign (12).png",
+    "mask_path": "D:\\HCMNet\\TextSAM-US\\data\\BUSI\\test_val\\images\\benign (12).png",
+    "caption": "Single hypoechoic lesion located at centroid [381.7885813148789, 200.5356401384083], approximate area 2890 pixels.",
+    "bboxes": [
+      {
+        "bbox": [
+          343,
+          178,
+          78,
+          44
+        ],
+        "area": 2890,
+        "centroid": [
+          381.7885813148789,
+          200.5356401384083
+        ],
+        "major_axis_length": 80.93863477565637,
+        "minor_axis_length": 45.746705683851545
+      }
+    ]
+  }
+]
